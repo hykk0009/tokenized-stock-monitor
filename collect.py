@@ -59,7 +59,7 @@ FIELDS = ["ts","symbol",
           "hl_mark","hl_oracle","hl_basis_bps","hl_funding_1h","hl_funding_ann_pct",
           "hl_oi_usd","hl_vol24_usd",
           "dex_usd","dex_liq_usd","dex_vol24_usd","dex_pool_fee",
-          "rh_bn_mid_bps","rh_bn_exec_bps","dex_bn_bps"]
+          "rh_bn_mid_bps","rh_bn_exec_bps","dex_bn_bps","dex_rh_bps"]
 
 
 def now_iso():
@@ -109,7 +109,7 @@ def fetch_binance():
             sym = x.get("symbol", "")
             if not sym.endswith("BUSDT"):
                 continue
-            t = sym[:-6]                       # <TICKER>B + USDT 제거
+            t = sym[:-5]                       # 뒤 "BUSDT" 5글자 제거 → 원 티커
             bid, ask = float(x["bidPrice"]), float(x["askPrice"])
             if bid <= 0 or ask <= 0:
                 continue
@@ -210,6 +210,20 @@ def snap_path():
 def append(path, fields, rows):
     os.makedirs(OUT, exist_ok=True)
     new = not os.path.exists(path)
+
+    # 컬럼이 추가된 경우 기존 파일의 헤더와 어긋나 열이 밀립니다.
+    # 헤더가 다르면 기존 행을 새 컬럼 구성으로 옮겨 적고 이어붙입니다.
+    if not new:
+        with open(path, newline="") as f:
+            old = next(csv.reader(f), None)
+        if old and old != list(fields):
+            with open(path, newline="") as f:
+                kept = list(csv.DictReader(f))
+            with open(path, "w", newline="") as f:
+                w = csv.DictWriter(f, fieldnames=fields, extrasaction="ignore")
+                w.writeheader()
+                w.writerows(kept)
+
     with open(path, "a", newline="") as f:
         w = csv.DictWriter(f, fieldnames=fields, extrasaction="ignore")
         if new:
@@ -256,6 +270,13 @@ def collect(use_dex=True):
         if "dex_usd" in r and "bn_bid" in r:
             bm = (r["bn_bid"] + r["bn_ask"]) / 2
             r["dex_bn_bps"] = round((r["dex_usd"] / bm - 1) * 1e4, 2)
+        # Binance 가 막힌 환경(GitHub Actions US 러너 등)에서의 대체 기준축.
+        # 보고서 §2.3 기준 RH↔Binance 중간가 차이는 중앙값 7.1bps 이므로
+        # dex_bn_bps 대신 써도 해석이 크게 흔들리지 않습니다.
+        if "dex_usd" in r and "rh_bid" in r and "rh_ask" in r:
+            rm = (r["rh_bid"] + r["rh_ask"]) / 2
+            if rm > 0:
+                r["dex_rh_bps"] = round((r["dex_usd"] / rm - 1) * 1e4, 2)
         rows.append(r)
     append(snap_path(), FIELDS, rows)
     st["rows"] = len(rows)

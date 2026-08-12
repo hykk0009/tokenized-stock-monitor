@@ -20,6 +20,7 @@ BASE = dict(
     hurdle_exec_bps=20.0,       # 왕복 수수료
     dex_pool_fee="0.25%",       # 현재 주 유동성 풀 수수료 티어
     hl_carry_ann_pct=7.0,       # 순 캐리 중앙값
+    dex_hurdle_bps=171.0,       # 온체인 왕복 허들 (풀수수료+고저폭, §4.1 최저값)
 )
 
 
@@ -73,7 +74,7 @@ def main():
     out["last_ts"] = str(snap.ts.max())
     L.append(f"■ 수집 현황: {out['n_snapshots']}회 · {out['span_days']}일 · 최종 {out['last_ts']}")
 
-    stale = (pd.Timestamp.utcnow() - snap.ts.max()).total_seconds() / 3600
+    stale = (pd.Timestamp.now("UTC") - snap.ts.max()).total_seconds() / 3600
     if stale > 6:
         alerts.append(f"⚠ 마지막 수집이 {stale:.1f}시간 전입니다 — Actions 실행 확인 필요")
 
@@ -106,6 +107,24 @@ def main():
         moved = {k: v for k, v in fees.items() if v and v != BASE["dex_pool_fee"]}
         if moved:
             alerts.append(f"⚠ 저수수료 티어로 유동성 이동 감지: {moved} — 보고서 S1 시나리오 발동 조건")
+
+    # ── BSC 온체인 ↔ Robinhood 스프레드 ──
+    # Binance 가 막힌 환경에서는 dex_bn_bps 가 비므로 Robinhood 를 기준축으로 씁니다.
+    # (§2.3 RH↔Binance 중간가 차이 중앙값 7.1bps → 기준축 교체 오차는 작음)
+    col = "dex_bn_bps" if ("dex_bn_bps" in snap and snap.dex_bn_bps.notna().any()) else "dex_rh_bps"
+    ref = "Binance" if col == "dex_bn_bps" else "Robinhood(대체)"
+    d = snap.dropna(subset=[col]) if col in snap else pd.DataFrame()
+    if len(d):
+        a = d[col].abs()
+        over = (a > BASE["dex_hurdle_bps"]).mean()
+        out["dex_spread"] = dict(ref=ref, p50=round(float(a.median()), 2),
+                                 p90=round(float(a.quantile(0.9)), 2),
+                                 share_over_hurdle=round(float(over), 4), n=int(len(d)))
+        L.append(f"■ BSC온체인↔{ref} 스프레드: |p50| {a.median():.1f}bps · "
+                 f"|p90| {a.quantile(0.9):.1f}bps · "
+                 f"허들 {BASE['dex_hurdle_bps']:.0f}bps 초과 비중 {over*100:.2f}%")
+        if over > 0.05:
+            alerts.append(f"⚠ 온체인 스프레드가 허들을 넘은 관측이 {over*100:.1f}% — 이전형(B) 재검토 조건")
 
     # ── Binance 호가 심도 ──
     if "bn_bid_usd" in snap:
