@@ -1,10 +1,10 @@
 {
- "ts": "2026-08-12T09:03:09Z",
+ "ts": "2026-08-12T10:23:01Z",
  "robinhood": 42,
  "binance": 0,
  "binance_host": null,
  "hyperliquid": 13,
  "bsc": 4,
  "rows": 44,
- "funding_new": 13
+ "funding_new": 0
 }
