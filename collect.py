@@ -59,6 +59,7 @@ FIELDS = ["ts","symbol",
           "hl_mark","hl_oracle","hl_basis_bps","hl_funding_1h","hl_funding_ann_pct",
           "hl_oi_usd","hl_vol24_usd",
           "dex_usd","dex_liq_usd","dex_vol24_usd","dex_pool_fee",
+          "dex_lowfee_liq_usd","dex_lowfee_vol24_usd",
           "rh_bn_mid_bps","rh_bn_exec_bps","dex_bn_bps","dex_rh_bps"]
 
 
@@ -162,22 +163,48 @@ def fetch_hl_funding(hours_back=72):
 
 
 # ── 4. BSC 온체인 ───────────────────────────────────────────────
+POOL_TTL_H = 6          # 풀 재탐색 주기(시간)
+MAIN_FEE = 0.25         # 현재 주 유동성 풀의 수수료 티어(%) — 이보다 낮으면 "저수수료 티어"
+
+
+def fee_of(name):
+    """'NVDAB / USDT 0.25%' → 0.25 (파싱 실패 시 None)"""
+    tok = name.split()[-1] if name else ""
+    try:
+        return float(tok.rstrip("%")) if tok.endswith("%") else None
+    except ValueError:
+        return None
+
+
 def resolve_pools():
+    """주 유동성 풀을 주기적으로 재탐색합니다.
+
+    한 번 캐시하고 끝내면 유동성이 저수수료 티어로 옮겨가도 영영 옛 풀만 보게 되어,
+    정작 감시 대상인 S1 시나리오를 놓칩니다. 그래서 TTL 이 지나면 다시 고릅니다.
+    동시에 저수수료 티어 풀의 유동성·거래대금을 합산해 선행지표로 기록합니다.
+    """
     cache = json.load(open(POOL_CACHE)) if os.path.exists(POOL_CACHE) else {}
+    now = int(time.time())
     for t, addr in BSC_TOKENS.items():
-        if cache.get(t):
+        cur = cache.get(t)
+        fresh = (isinstance(cur, dict) and cur.get("addr")
+                 and now - int(cur.get("ts", 0)) < POOL_TTL_H * 3600)
+        if fresh:
             continue
         d = get(f"https://api.geckoterminal.com/api/v2/networks/bsc/tokens/{addr}/pools")
-        best, bv = None, -1.0
-        for p in ((d or {}).get("data") or []):
-            a = p["attributes"]
-            if not a["name"].upper().startswith(f"{t}B / USDT"):
-                continue
-            v = float(a["volume_usd"]["h24"])
-            if v > bv:
-                best, bv = dict(addr=a["address"], name=a["name"]), v
-        if best:
-            cache[t] = best
+        cand = [p["attributes"] for p in ((d or {}).get("data") or [])
+                if p["attributes"]["name"].upper().startswith(f"{t}B / USDT")]
+        if not cand:
+            time.sleep(2.5)
+            continue
+        best = max(cand, key=lambda a: float(a["volume_usd"]["h24"]))
+        low = [a for a in cand
+               if (fee_of(a["name"]) is not None and fee_of(a["name"]) < MAIN_FEE)]
+        cache[t] = dict(
+            addr=best["address"], name=best["name"], ts=now,
+            lowfee_liq_usd=round(sum(float(a["reserve_in_usd"]) for a in low)),
+            lowfee_vol24_usd=round(sum(float(a["volume_usd"]["h24"]) for a in low)),
+            lowfee_pools=len(low))
         time.sleep(2.5)
     os.makedirs(OUT, exist_ok=True)
     json.dump(cache, open(POOL_CACHE, "w"), indent=1, ensure_ascii=False)
@@ -198,6 +225,10 @@ def fetch_bsc(pools):
                           dex_liq_usd=round(float(a["reserve_in_usd"])),
                           dex_vol24_usd=round(float(a["volume_usd"]["h24"])),
                           dex_pool_fee=fee)
+            # 저수수료 티어 선행지표 — 티어가 완전히 뒤집히기 전에 유동성 형성을 먼저 잡습니다
+            if isinstance(p, dict) and "lowfee_liq_usd" in p:
+                out[t]["dex_lowfee_liq_usd"] = p["lowfee_liq_usd"]
+                out[t]["dex_lowfee_vol24_usd"] = p["lowfee_vol24_usd"]
         time.sleep(2.5)
     return out
 

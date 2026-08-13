@@ -21,6 +21,7 @@ BASE = dict(
     dex_pool_fee="0.25%",       # 현재 주 유동성 풀 수수료 티어
     hl_carry_ann_pct=7.0,       # 순 캐리 중앙값
     dex_hurdle_bps=171.0,       # 온체인 왕복 허들 (풀수수료+고저폭, §4.1 최저값)
+    lowfee_liq_alert_usd=1_000_000,   # 저수수료 티어 유동성 경보선 (현재 AAPLB 0.05% 풀 수준의 수배)
 )
 
 
@@ -107,6 +108,20 @@ def main():
         moved = {k: v for k, v in fees.items() if v and v != BASE["dex_pool_fee"]}
         if moved:
             alerts.append(f"⚠ 저수수료 티어로 유동성 이동 감지: {moved} — 보고서 S1 시나리오 발동 조건")
+
+        # 티어가 완전히 뒤집히기 전 단계 — 저수수료 풀에 유동성이 쌓이는 중인지
+        if "dex_lowfee_liq_usd" in last:
+            lf = last.dropna(subset=["dex_lowfee_liq_usd"])
+            if len(lf):
+                tot = float(lf.dex_lowfee_liq_usd.sum())
+                out["lowfee_liq_usd"] = round(tot)
+                detail = ", ".join(f"{r.symbol} ${r.dex_lowfee_liq_usd:,.0f}"
+                                   for r in lf.itertuples() if r.dex_lowfee_liq_usd > 0)
+                L.append(f"■ 저수수료(<{BASE['dex_pool_fee']}) 티어 유동성 합계: ${tot:,.0f}"
+                         + (f" ({detail})" if detail else ""))
+                if tot > BASE["lowfee_liq_alert_usd"]:
+                    alerts.append(f"⚠ 저수수료 티어 유동성이 ${tot:,.0f} — "
+                                  f"S1 선행 신호, 주 풀 이동 전 단계일 수 있음")
 
     # ── BSC 온체인 ↔ Robinhood 스프레드 ──
     # Binance 가 막힌 환경에서는 dex_bn_bps 가 비므로 Robinhood 를 기준축으로 씁니다.
