@@ -2,15 +2,15 @@
  "NVDA": {
   "addr": "0x8fb4243b553ac29ba088acf00b9b7da24bd6690c",
   "name": "NVDAB / USDT 0.25%",
-  "ts": 1786791390,
-  "lowfee_liq_usd": 51770,
-  "lowfee_vol24_usd": 1363201,
+  "ts": 1786813114,
+  "lowfee_liq_usd": 122998,
+  "lowfee_vol24_usd": 947780,
   "lowfee_pools": 2
  },
  "TSLA": {
   "addr": "0xb0f5e5400e8f0f7c242f2b7740c004f020579c41",
   "name": "TSLAB / USDT 0.25%",
-  "ts": 1786791390,
+  "ts": 1786813114,
   "lowfee_liq_usd": 0,
   "lowfee_vol24_usd": 0,
   "lowfee_pools": 0
