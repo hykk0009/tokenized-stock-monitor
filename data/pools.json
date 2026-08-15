@@ -18,17 +18,17 @@
  "AAPL": {
   "addr": "0xe9b9998b2ec5430d2246c7f1f8d9f298c97d7365",
   "name": "AAPLB / USDT 0.25%",
-  "ts": 1786792274,
-  "lowfee_liq_usd": 27362,
-  "lowfee_vol24_usd": 568070,
+  "ts": 1786813956,
+  "lowfee_liq_usd": 16476,
+  "lowfee_vol24_usd": 483279,
   "lowfee_pools": 1
  },
  "SPCX": {
   "addr": "0x51a45a72cc96ca3ba615e25e80a6af2740ae2e2d",
   "name": "SPCXB / USDT 0.05%",
-  "ts": 1786792274,
-  "lowfee_liq_usd": 951311,
-  "lowfee_vol24_usd": 4931221,
+  "ts": 1786813956,
+  "lowfee_liq_usd": 951002,
+  "lowfee_vol24_usd": 3817165,
   "lowfee_pools": 2
  }
 }
