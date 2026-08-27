@@ -2,33 +2,33 @@
  "NVDA": {
   "addr": "0x8fb4243b553ac29ba088acf00b9b7da24bd6690c",
   "name": "NVDAB / USDT 0.25%",
-  "ts": 1787810098,
-  "lowfee_liq_usd": 318699,
-  "lowfee_vol24_usd": 2606663,
+  "ts": 1787850399,
+  "lowfee_liq_usd": 91369,
+  "lowfee_vol24_usd": 2480357,
   "lowfee_pools": 3
  },
  "TSLA": {
   "addr": "0xb0f5e5400e8f0f7c242f2b7740c004f020579c41",
   "name": "TSLAB / USDT 0.25%",
-  "ts": 1787810098,
-  "lowfee_liq_usd": 10192,
-  "lowfee_vol24_usd": 90555,
+  "ts": 1787850399,
+  "lowfee_liq_usd": 10295,
+  "lowfee_vol24_usd": 92395,
   "lowfee_pools": 1
  },
  "AAPL": {
   "addr": "0xe9b9998b2ec5430d2246c7f1f8d9f298c97d7365",
   "name": "AAPLB / USDT 0.25%",
-  "ts": 1787810098,
-  "lowfee_liq_usd": 40170,
-  "lowfee_vol24_usd": 446295,
+  "ts": 1787850399,
+  "lowfee_liq_usd": 35399,
+  "lowfee_vol24_usd": 447893,
   "lowfee_pools": 1
  },
  "SPCX": {
-  "addr": "0xa88adfacfff81a5e6e22379dd6c876dcb3ae3738e702d65706b323cdf5312662",
-  "name": "SPCXB / USDT 0.036%",
-  "ts": 1787810098,
-  "lowfee_liq_usd": 587506,
-  "lowfee_vol24_usd": 3357819,
+  "addr": "0x977daffc095b33872e2741c19568925015c35b4d",
+  "name": "SPCXB / USDT 0.25%",
+  "ts": 1787850399,
+  "lowfee_liq_usd": 348123,
+  "lowfee_vol24_usd": 2532623,
   "lowfee_pools": 3
  }
 }
